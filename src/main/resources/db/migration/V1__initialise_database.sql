@@ -8,3 +8,15 @@ CREATE TABLE mcve.test (
   
   CONSTRAINT pk_test PRIMARY KEY (id) 
 );
+
+create table mcve.task (
+    group_id  int,
+    member_id int,
+    constraint pk_task primary key (group_id, member_id)
+);
+
+create table mcve.completed_task (
+    group_id int,
+    member_id int,
+    constraint pk_completed_task primary key (group_id, member_id)
+);

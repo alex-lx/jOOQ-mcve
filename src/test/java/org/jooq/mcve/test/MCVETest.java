@@ -37,19 +37,25 @@
  */
 package org.jooq.mcve.test;
 
-import static org.jooq.mcve.Tables.TEST;
-import static org.junit.Assert.assertEquals;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-
+import org.hamcrest.CoreMatchers;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.jooq.mcve.tables.CompletedTask;
+import org.jooq.mcve.tables.Task;
+import org.jooq.mcve.tables.records.CompletedTaskRecord;
+import org.jooq.mcve.tables.records.TaskRecord;
 import org.jooq.mcve.tables.records.TestRecord;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.List;
+
+import static org.jooq.mcve.Tables.*;
+import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MCVETest {
 
@@ -80,5 +86,31 @@ public class MCVETest {
 
         result.refresh();
         assertEquals(42, (int) result.getValue());
+        ctx.batchStore(
+                new TaskRecord(100, 1),
+                new TaskRecord(100, 2),
+                new TaskRecord(100, 3),
+                new TaskRecord(200, 1),
+                new TaskRecord(200, 2),
+                new TaskRecord(200, 3),
+                new CompletedTaskRecord(100, 1),
+                new CompletedTaskRecord(200, 1),
+                new CompletedTaskRecord(200, 2)
+        );
+
+        Task t1 = TASK.as("t1");
+        CompletedTask t2 = COMPLETED_TASK.as("t2");
+
+        int groupId = 1;
+        List<Integer> todoTasks = ctx.select(t1.MEMBER_ID)
+                .from(
+                        t1.leftAntiJoin(t2)
+                                .on(t1.MEMBER_ID.eq(t2.MEMBER_ID))
+                )
+                .where(t1.GROUP_ID.eq(groupId))
+                .and(t2.GROUP_ID.eq(groupId))
+                .fetch(t1.MEMBER_ID);
+
+        assertThat(todoTasks, CoreMatchers.hasItems(2, 3));
     }
 }
